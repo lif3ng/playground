@@ -16,10 +16,10 @@
 - [x] 2.5 实现 EditorContainer（可切换编辑器）
 - [x] 2.6 编写编辑器模块测试（15/15 通过）
 
-## Phase 3 — 预览沙盒模块
-- [ ] 3.1 实现 usePreview composable（各语言 HTML 生成）
-- [ ] 3.2 实现 PreviewFrame 组件
-- [ ] 3.3 编写预览模块测试
+## Phase 3 — 预览沙盒模块 ✅
+- [x] 3.1 实现 usePreview composable（各语言 HTML 生成）
+- [x] 3.2 实现 PreviewFrame 组件（postMessage console + 错误展示 + 刷新）
+- [x] 3.3 编写预览模块测试（22/22 通过）
 
 ## Phase 4 — 布局模块
 - [ ] 4.1 实现 useLayout composable
