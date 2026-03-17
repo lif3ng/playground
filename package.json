@@ -37,6 +37,7 @@
     "@vue/test-utils": "^2.4.6",
     "@vue/tsconfig": "^0.7.0",
     "eslint": "^9.20.0",
+    "jsdom": "^29.0.0",
     "prettier": "^3.5.1",
     "typescript": "^5.7.2",
     "unocss": "^66.1.0",

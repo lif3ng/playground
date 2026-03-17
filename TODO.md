@@ -8,13 +8,13 @@
 - [x] 1.5 配置 Vue Router
 - [x] 1.6 搭建基础目录结构与空壳组件
 
-## Phase 2 — 编辑器模块
-- [ ] 2.1 定义 EditorAdapter 接口与 SupportedLanguage 类型
-- [ ] 2.2 实现 useEditor composable
-- [ ] 2.3 实现 Monaco Editor 适配器
-- [ ] 2.4 实现 CodeMirror 6 适配器
-- [ ] 2.5 实现 EditorContainer（可切换编辑器）
-- [ ] 2.6 编写编辑器模块测试
+## Phase 2 — 编辑器模块 ✅
+- [x] 2.1 定义 EditorAdapter 接口与 SupportedLanguage 类型
+- [x] 2.2 实现 useEditor composable
+- [x] 2.3 实现 Monaco Editor 适配器
+- [x] 2.4 实现 CodeMirror 6 适配器
+- [x] 2.5 实现 EditorContainer（可切换编辑器）
+- [x] 2.6 编写编辑器模块测试（15/15 通过）
 
 ## Phase 3 — 预览沙盒模块
 - [ ] 3.1 实现 usePreview composable（各语言 HTML 生成）
