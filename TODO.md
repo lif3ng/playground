@@ -1,12 +1,12 @@
 # Playground 开发待办
 
-## Phase 1 — 项目脚手架
-- [ ] 1.1 初始化 Vite + Vue + TypeScript 项目
-- [ ] 1.2 配置 UnoCSS + design tokens
-- [ ] 1.3 配置 ESLint + Prettier
-- [ ] 1.4 配置 Vitest
-- [ ] 1.5 配置 Vue Router
-- [ ] 1.6 搭建基础目录结构与空壳组件
+## Phase 1 — 项目脚手架 ✅
+- [x] 1.1 初始化 Vite + Vue + TypeScript 项目
+- [x] 1.2 配置 UnoCSS + design tokens
+- [x] 1.3 配置 ESLint + Prettier
+- [x] 1.4 配置 Vitest
+- [x] 1.5 配置 Vue Router
+- [x] 1.6 搭建基础目录结构与空壳组件
 
 ## Phase 2 — 编辑器模块
 - [ ] 2.1 定义 EditorAdapter 接口与 SupportedLanguage 类型

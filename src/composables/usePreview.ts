@@ -1,58 +1,51 @@
 import { computed, type Ref } from 'vue'
 import type { SupportedLanguage } from './useEditor'
 
-const CONSOLE_INTERCEPT = `
-<script>
+// Console intercept via postMessage — safer than DOM injection
+const CONSOLE_INTERCEPT = `<script>
 (function() {
   const _log = console.log.bind(console);
   const _warn = console.warn.bind(console);
   const _error = console.error.bind(console);
-  function appendLog(type, args) {
-    const el = document.getElementById('__console');
-    if (!el) return;
-    const line = document.createElement('div');
-    line.className = 'log-' + type;
-    line.textContent = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
-    el.appendChild(line);
+  function send(type, args) {
+    try {
+      window.parent.postMessage({
+        type: '__playground_console',
+        level: type,
+        args: args.map(a => {
+          try { return typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a); }
+          catch(e) { return String(a); }
+        })
+      }, '*');
+    } catch(e) {}
   }
-  console.log = (...a) => { _log(...a); appendLog('log', a); };
-  console.warn = (...a) => { _warn(...a); appendLog('warn', a); };
-  console.error = (...a) => { _error(...a); appendLog('error', a); };
-  window.addEventListener('error', e => appendLog('error', [e.message]));
+  console.log = (...a) => { _log(...a); send('log', a); };
+  console.warn = (...a) => { _warn(...a); send('warn', a); };
+  console.error = (...a) => { _error(...a); send('error', a); };
+  window.addEventListener('error', e => send('error', [e.message]));
+  window.addEventListener('unhandledrejection', e => send('error', [String(e.reason)]));
 })();
-<\/script>
-`
+<\/script>`
 
-const CONSOLE_STYLES = `
-<style>
-#__console {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  max-height: 120px; overflow-y: auto;
-  background: #1e1e1e; color: #d4d4d4;
-  font-family: monospace; font-size: 12px;
-  padding: 4px 8px; border-top: 1px solid #333;
-}
-.log-log { color: #d4d4d4; }
-.log-warn { color: #f59e0b; }
-.log-error { color: #ef4444; }
-</style>
-`
-
-const CONSOLE_DOM = `<div id="__console"></div>`
+const BASE_HEAD = `<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">`
 
 function wrapHtml(code: string): string {
-  return `${code}\n${CONSOLE_INTERCEPT}${CONSOLE_STYLES}${CONSOLE_DOM}`
+  // Inject console intercept before closing body
+  if (code.includes('</body>')) {
+    return code.replace('</body>', `${CONSOLE_INTERCEPT}\n</body>`)
+  }
+  return `${code}\n${CONSOLE_INTERCEPT}`
 }
 
 function wrapCss(code: string): string {
   return `<!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
+${BASE_HEAD}
 <style>${code}</style>
-${CONSOLE_STYLES}
 </head>
 <body>
+${CONSOLE_INTERCEPT}
 <div style="padding:1rem;font-family:sans-serif">
   <p style="color:#6b7280;font-size:0.875rem">CSS 预览 — 在代码中添加 HTML 元素来查看效果</p>
   <h1>标题 Heading 1</h1>
@@ -62,7 +55,6 @@ ${CONSOLE_STYLES}
   <button>按钮 Button</button>
   <ul><li>列表项 1</li><li>列表项 2</li></ul>
 </div>
-${CONSOLE_DOM}
 </body>
 </html>`
 }
@@ -71,8 +63,7 @@ function wrapJs(code: string): string {
   return `<!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
-${CONSOLE_STYLES}
+${BASE_HEAD}
 </head>
 <body>
 ${CONSOLE_INTERCEPT}
@@ -80,47 +71,45 @@ ${CONSOLE_INTERCEPT}
 try {
 ${code}
 } catch(e) {
-  console.error(e.message)
+  console.error(e.message);
 }
 <\/script>
-${CONSOLE_DOM}
 </body>
 </html>`
 }
 
-function wrapTs(code: string): string {
-  // TypeScript 在浏览器中无法直接运行，提示需要构建
+function wrapTs(_code: string): string {
   return `<!DOCTYPE html>
 <html>
-<head><meta charset="UTF-8">${CONSOLE_STYLES}</head>
+<head>${BASE_HEAD}</head>
 <body>
 ${CONSOLE_INTERCEPT}
-<div style="padding:2rem;font-family:monospace;background:#1e1e1e;color:#d4d4d4;min-height:100vh">
-  <p style="color:#f59e0b;margin-bottom:1rem">⚠ TypeScript 需要编译后才能运行，以下为源码预览：</p>
-  <pre style="white-space:pre-wrap">${code.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+<div style="padding:2rem;font-family:sans-serif;color:#6b7280;text-align:center">
+  <h2 style="color:#f59e0b">⚠️ TypeScript</h2>
+  <p>TypeScript 需要编译后才能在浏览器中运行。</p>
+  <p>当前预览模式不支持 TS 编译，请使用 JavaScript 模式。</p>
 </div>
-${CONSOLE_DOM}
 </body>
 </html>`
 }
 
-function wrapVue(code: string): string {
+function wrapVue(src: string): string {
   return `<!DOCTYPE html>
 <html>
 <head>
-<meta charset="UTF-8">
+${BASE_HEAD}
 <script src="https://unpkg.com/vue@3/dist/vue.global.js"><\/script>
-${CONSOLE_STYLES}
 </head>
 <body>
 ${CONSOLE_INTERCEPT}
 <div id="app"></div>
 <script type="module">
 try {
-  // Simple Vue SFC runner — handles basic <template>/<script setup>/<style>
-  const src = ${JSON.stringify(code)};
+  const { createApp, ref, reactive, computed, onMounted, watch, nextTick } = Vue;
+  const src = ${JSON.stringify(src)};
   const templateMatch = src.match(/<template>([\\s\\S]*?)<\/template>/);
-  const scriptMatch = src.match(/<script[^>]*>([\\s\\S]*?)<\/script>/);
+  const scriptMatch = src.match(/<script[^>]*setup[^>]*>([\\s\\S]*?)<\/script>/) ||
+                      src.match(/<script[^>]*>([\\s\\S]*?)<\/script>/);
   const styleMatch = src.match(/<style[^>]*>([\\s\\S]*?)<\/style>/);
 
   if (styleMatch) {
@@ -129,26 +118,30 @@ try {
     document.head.appendChild(style);
   }
 
-  const template = templateMatch ? templateMatch[1].trim() : '<div>No template found</div>';
-  const scriptSrc = scriptMatch ? scriptMatch[1] : '';
+  const template = templateMatch ? templateMatch[1].trim() : '<div>No template</div>';
+  let setupFn = () => ({});
 
-  // Execute setup script in module context
-  const blob = new Blob([
-    scriptSrc + '\n; const __setup = typeof setup !== "undefined" ? setup : () => ({}); window.__vueSetup = __setup;'
-  ], { type: 'text/javascript' });
-  const url = URL.createObjectURL(blob);
-  const mod = await import(url);
-  URL.revokeObjectURL(url);
+  if (scriptMatch) {
+    const scriptBody = scriptMatch[1]
+      .replace(/import\s+.*?from\s+['"]vue['"];?/g, '')
+      .replace(/import\s+.*?;?/g, '');
+    try {
+      setupFn = new Function('ref', 'reactive', 'computed', 'onMounted', 'watch', 'nextTick', scriptBody + '\nreturn typeof setup !== "undefined" ? setup() : {};')(ref, reactive, computed, onMounted, watch, nextTick);
+      if (typeof setupFn !== 'function') {
+        const result = setupFn;
+        setupFn = () => result || {};
+      }
+    } catch(e) {
+      console.warn('Script parse warning:', e.message);
+    }
+  }
 
-  const { createApp, ref, reactive, computed, onMounted } = Vue;
-  const app = createApp({ template, setup: mod.default ?? (() => ({})) });
-  app.mount('#app');
+  createApp({ template, setup: setupFn }).mount('#app');
 } catch(e) {
   console.error('Vue error: ' + e.message);
   document.getElementById('app').innerHTML = '<p style="color:red">Error: ' + e.message + '</p>';
 }
 <\/script>
-${CONSOLE_DOM}
 </body>
 </html>`
 }
