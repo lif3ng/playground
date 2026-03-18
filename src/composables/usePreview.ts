@@ -10,12 +10,15 @@ const CONSOLE_INTERCEPT = `<script>
   function send(type, args) {
     try {
       window.parent.postMessage({
-        type: '__playground_console',
-        level: type,
-        args: args.map(a => {
-          try { return typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a); }
-          catch(e) { return String(a); }
-        })
+        source: 'playground-preview',
+        type: 'console',
+        payload: {
+          type: type,
+          args: args.map(a => {
+            try { return typeof a === 'object' ? JSON.stringify(a, null, 2) : String(a); }
+            catch(e) { return String(a); }
+          }).join(' ')
+        }
       }, '*');
     } catch(e) {}
   }

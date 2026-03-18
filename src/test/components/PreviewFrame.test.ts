@@ -78,6 +78,22 @@ describe('PreviewFrame', () => {
     expect(wrapper.find('.preview-error').exists()).toBe(false)
   })
 
+  it('shows console logs when receiving console message', async () => {
+    const wrapper = mount(PreviewFrame, {
+      props: { html: '' },
+    })
+    window.dispatchEvent(new MessageEvent('message', {
+      data: {
+        source: 'playground-preview',
+        type: 'console',
+        payload: { type: 'log', args: 'Hello World' },
+      },
+    }))
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('.console-panel').exists()).toBe(true)
+    expect(wrapper.find('.console-text').text()).toContain('Hello World')
+  })
+
   it('ignores postMessage from unknown sources', async () => {
     const wrapper = mount(PreviewFrame, {
       props: { html: '' },
