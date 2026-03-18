@@ -119,7 +119,7 @@ try {
           onMounted, onUnmounted, onUpdated, onBeforeMount,
           watch, watchEffect, nextTick,
           toRef, toRefs, isRef, unref, shallowRef, triggerRef } = Vue;
-  const src = ${JSON.stringify('__SRC_PLACEHOLDER__')};
+  const src = ${JSON.stringify(src)};
   const templateMatch = src.match(/<template>([\\s\\S]*?)<\\/template>/);
   const scriptMatch = src.match(/<script[^>]*setup[^>]*>([\\s\\S]*?)<\\/script>/) ||
                       src.match(/<script[^>]*>([\\s\\S]*?)<\\/script>/);
