@@ -8,7 +8,7 @@ const props = defineProps<{
 
 const STORAGE_KEY = 'playground:layout:split'
 const savedSplit = Number(localStorage.getItem(STORAGE_KEY)) || 50
-const splitPercent = ref(savedSplit)
+const splitPercent = ref(Math.min(90, Math.max(10, savedSplit)))
 
 const isHorizontal = computed(() => props.direction === 'horizontal')
 
@@ -35,35 +35,67 @@ let startPos = 0
 let startSplit = 0
 let containerSize = 0
 
-function onDividerMousedown(e: MouseEvent) {
+function startDrag(pos: number, e: { target: EventTarget | null }) {
   dragging = true
-  startPos = isHorizontal.value ? e.clientX : e.clientY
+  startPos = pos
   startSplit = splitPercent.value
   const container = (e.target as HTMLElement).parentElement!
   const rect = container.getBoundingClientRect()
   containerSize = isHorizontal.value ? rect.width : rect.height
-  document.addEventListener('mousemove', onMouseMove)
-  document.addEventListener('mouseup', onMouseUp)
+}
+
+function updateDrag(pos: number) {
+  if (!dragging) return
+  const delta = pos - startPos
+  const deltaPercent = (delta / containerSize) * 100
+  splitPercent.value = Math.round(Math.min(90, Math.max(10, startSplit + deltaPercent)) * 10) / 10
+}
+
+function endDrag() {
+  if (!dragging) return
+  dragging = false
+  localStorage.setItem(STORAGE_KEY, String(splitPercent.value))
+}
+
+// Mouse
+function onDividerMousedown(e: MouseEvent) {
+  startDrag(isHorizontal.value ? e.clientX : e.clientY, e)
   document.body.style.userSelect = 'none'
   document.body.style.cursor = isHorizontal.value ? 'col-resize' : 'row-resize'
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
 }
 
 function onMouseMove(e: MouseEvent) {
-  if (!dragging) return
-  const pos = isHorizontal.value ? e.clientX : e.clientY
-  const delta = pos - startPos
-  const deltaPercent = (delta / containerSize) * 100
-  const newSplit = Math.min(90, Math.max(10, startSplit + deltaPercent))
-  splitPercent.value = Math.round(newSplit * 10) / 10
+  updateDrag(isHorizontal.value ? e.clientX : e.clientY)
 }
 
 function onMouseUp() {
-  dragging = false
-  document.removeEventListener('mousemove', onMouseMove)
-  document.removeEventListener('mouseup', onMouseUp)
+  endDrag()
   document.body.style.userSelect = ''
   document.body.style.cursor = ''
-  localStorage.setItem(STORAGE_KEY, String(splitPercent.value))
+  document.removeEventListener('mousemove', onMouseMove)
+  document.removeEventListener('mouseup', onMouseUp)
+}
+
+// Touch
+function onDividerTouchstart(e: TouchEvent) {
+  const touch = e.touches[0]
+  startDrag(isHorizontal.value ? touch.clientX : touch.clientY, e)
+  document.addEventListener('touchmove', onTouchMove, { passive: false })
+  document.addEventListener('touchend', onTouchEnd)
+}
+
+function onTouchMove(e: TouchEvent) {
+  e.preventDefault()
+  const touch = e.touches[0]
+  updateDrag(isHorizontal.value ? touch.clientX : touch.clientY)
+}
+
+function onTouchEnd() {
+  endDrag()
+  document.removeEventListener('touchmove', onTouchMove)
+  document.removeEventListener('touchend', onTouchEnd)
 }
 </script>
 
@@ -76,6 +108,7 @@ function onMouseUp() {
       class="split-divider"
       :class="isHorizontal ? 'divider-h' : 'divider-v'"
       @mousedown="onDividerMousedown"
+      @touchstart.passive="onDividerTouchstart"
     />
     <div :style="secondPaneStyle" class="split-pane">
       <slot name="right" />
@@ -96,20 +129,35 @@ function onMouseUp() {
   flex-direction: column;
 }
 .split-divider {
-  background: #e5e7eb;
+  background: #313244;
   transition: background 0.15s;
   flex-shrink: 0;
   z-index: 10;
+  position: relative;
 }
-.split-divider:hover, .split-divider:active {
-  background: #6366f1;
+.split-divider::after {
+  content: '';
+  position: absolute;
+  background: transparent;
 }
 .divider-h {
   width: 4px;
   cursor: col-resize;
 }
+.divider-h::after {
+  top: 0; bottom: 0;
+  left: -4px; right: -4px;
+}
 .divider-v {
   height: 4px;
   cursor: row-resize;
+}
+.divider-v::after {
+  left: 0; right: 0;
+  top: -4px; bottom: -4px;
+}
+.split-divider:hover,
+.split-divider:active {
+  background: #6366f1;
 }
 </style>
