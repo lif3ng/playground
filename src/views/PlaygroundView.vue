@@ -7,7 +7,20 @@ import SplitLayout from '@/components/layout/SplitLayout.vue'
 import EditorContainer from '@/components/editors/EditorContainer.vue'
 import PreviewFrame from '@/components/preview/PreviewFrame.vue'
 
-const { code, language, editorType, setLanguage, setEditorType, saveCode, resetCode } = useEditor()
+const {
+  files,
+  activeFileId,
+  code,
+  language,
+  editorType,
+  setActiveFile,
+  addFile,
+  removeFile,
+  setEditorType,
+  saveCode,
+  resetCode,
+} = useEditor()
+
 const { direction, toggleDirection } = useLayout()
 const { previewHtml } = usePreview(code, language)
 </script>
@@ -16,10 +29,13 @@ const { previewHtml } = usePreview(code, language)
   <div class="playground">
     <LayoutToolbar
       :direction="direction"
-      :language="language"
+      :files="files"
+      :active-file-id="activeFileId"
       :editor-type="editorType"
       @toggle-direction="toggleDirection"
-      @set-language="setLanguage"
+      @set-active-file="setActiveFile"
+      @add-file="addFile"
+      @remove-file="removeFile"
       @set-editor-type="setEditorType"
       @reset-code="resetCode"
     />

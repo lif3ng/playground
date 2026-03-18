@@ -1,32 +1,46 @@
 <script setup lang="ts">
 import type { LayoutDirection } from '@/composables/useLayout'
-import type { SupportedLanguage, EditorType } from '@/composables/useEditor'
+import type { EditorType, EditorFile } from '@/composables/useEditor'
 
 defineProps<{
   direction: LayoutDirection
-  language: SupportedLanguage
+  files: EditorFile[]
+  activeFileId: string
   editorType: EditorType
 }>()
 
 const emit = defineEmits<{
   toggleDirection: []
-  setLanguage: [lang: SupportedLanguage]
+  setActiveFile: [fileId: string]
+  addFile: [language: 'html' | 'css' | 'javascript' | 'typescript' | 'vue']
+  removeFile: [fileId: string]
   setEditorType: [type: EditorType]
   resetCode: []
 }>()
-
-const languages: { value: SupportedLanguage; label: string; shortLabel: string }[] = [
-  { value: 'html', label: 'HTML', shortLabel: 'HTML' },
-  { value: 'css', label: 'CSS', shortLabel: 'CSS' },
-  { value: 'javascript', label: 'JavaScript', shortLabel: 'JS' },
-  { value: 'typescript', label: 'TypeScript', shortLabel: 'TS' },
-  { value: 'vue', label: 'Vue SFC', shortLabel: 'Vue' },
-]
 
 const editors: { value: EditorType; label: string }[] = [
   { value: 'monaco', label: 'Monaco (VSCode)' },
   { value: 'codemirror', label: 'CodeMirror' },
 ]
+
+const addFileOptions: { value: 'html' | 'css' | 'javascript' | 'typescript' | 'vue'; label: string }[] = [
+  { value: 'html', label: '+ HTML' },
+  { value: 'css', label: '+ CSS' },
+  { value: 'javascript', label: '+ JS' },
+  { value: 'typescript', label: '+ TS' },
+  { value: 'vue', label: '+ Vue' },
+]
+
+function getFileIcon(language: string): string {
+  const icons: Record<string, string> = {
+    html: '📄',
+    css: '🎨',
+    javascript: '📜',
+    typescript: '📘',
+    vue: '💚',
+  }
+  return icons[language] ?? '📄'
+}
 </script>
 
 <template>
@@ -35,17 +49,35 @@ const editors: { value: EditorType; label: string }[] = [
       <span class="logo">⚡ Playground</span>
     </div>
     <div class="toolbar-center">
-      <div class="btn-group">
-        <button
-          v-for="lang in languages"
-          :key="lang.value"
-          :class="['btn', language === lang.value ? 'btn-active' : 'btn-ghost']"
-          :title="lang.label"
-          @click="emit('setLanguage', lang.value)"
+      <div class="file-tabs">
+        <div
+          v-for="file in files"
+          :key="file.id"
+          :class="['file-tab', { active: file.id === activeFileId }]"
+          @click="emit('setActiveFile', file.id)"
         >
-          <span class="label-full">{{ lang.label }}</span>
-          <span class="label-short">{{ lang.shortLabel }}</span>
-        </button>
+          <span class="file-icon">{{ getFileIcon(file.language) }}</span>
+          <span class="file-name">{{ file.name }}</span>
+          <button
+            v-if="files.length > 1"
+            class="file-close"
+            title="关闭文件"
+            @click.stop="emit('removeFile', file.id)"
+          >
+            ×
+          </button>
+        </div>
+        <div class="file-add">
+          <select
+            class="add-select"
+            @change="emit('addFile', ($event.target as HTMLSelectElement).value as any)"
+          >
+            <option value="" disabled selected>+</option>
+            <option v-for="opt in addFileOptions" :key="opt.value" :value="opt.value">
+              {{ opt.label }}
+            </option>
+          </select>
+        </div>
       </div>
     </div>
     <div class="toolbar-right">
@@ -58,7 +90,7 @@ const editors: { value: EditorType; label: string }[] = [
       </select>
       <button
         class="btn btn-icon"
-        title="重置代码为默认"
+        title="重置当前文件为默认"
         @click="emit('resetCode')"
       >
         ↺
@@ -104,7 +136,7 @@ const editors: { value: EditorType; label: string }[] = [
   display: flex;
   justify-content: center;
   min-width: 0;
-  overflow: hidden;
+  overflow-x: auto;
 }
 .logo {
   color: #cdd6f4;
@@ -113,14 +145,90 @@ const editors: { value: EditorType; label: string }[] = [
   letter-spacing: 0.02em;
   white-space: nowrap;
 }
-.btn-group {
+
+/* File tabs */
+.file-tabs {
   display: flex;
   gap: 2px;
-  background: #313244;
-  border-radius: 6px;
-  padding: 2px;
-  overflow: hidden;
+  align-items: center;
+  padding: 4px 0;
 }
+.file-tab {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #313244;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #a6adc8;
+  transition: all 0.15s;
+  white-space: nowrap;
+  max-width: 120px;
+}
+.file-tab:hover {
+  background: #45475a;
+  color: #cdd6f4;
+}
+.file-tab.active {
+  background: #6366f1;
+  color: #fff;
+}
+.file-icon {
+  font-size: 0.7rem;
+}
+.file-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.file-close {
+  display: none;
+  background: none;
+  border: none;
+  color: inherit;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+  margin-left: 2px;
+}
+.file-tab:hover .file-close,
+.file-tab.active .file-close {
+  display: block;
+}
+.file-close:hover {
+  color: #f38ba8;
+}
+
+/* Add file button */
+.file-add {
+  margin-left: 2px;
+}
+.add-select {
+  appearance: none;
+  background: #313244;
+  border: none;
+  border-radius: 4px;
+  color: #a6adc8;
+  font-size: 0.9rem;
+  font-weight: bold;
+  width: 28px;
+  height: 28px;
+  cursor: pointer;
+  text-align: center;
+  padding: 0;
+}
+.add-select:hover {
+  background: #45475a;
+  color: #cdd6f4;
+}
+.add-select option {
+  background: #1e1e2e;
+  color: #cdd6f4;
+  font-size: 0.8rem;
+}
+
 .btn {
   padding: 3px 10px;
   font-size: 0.8rem;
@@ -130,18 +238,6 @@ const editors: { value: EditorType; label: string }[] = [
   font-family: inherit;
   transition: all 0.15s;
   white-space: nowrap;
-}
-.btn-active {
-  background: #6366f1;
-  color: #fff;
-}
-.btn-ghost {
-  background: transparent;
-  color: #a6adc8;
-}
-.btn-ghost:hover {
-  background: #45475a;
-  color: #cdd6f4;
 }
 .btn-icon {
   background: #313244;
@@ -173,10 +269,8 @@ const editors: { value: EditorType; label: string }[] = [
 .select:hover {
   border-color: #6366f1;
 }
-/* 移动端：隐藏 logo 和完整标签，显示短标签 */
-.label-short { display: none; }
-.label-full { display: inline; }
 
+/* 移动端 */
 @media (max-width: 600px) {
   .toolbar {
     padding: 0 8px;
@@ -189,12 +283,14 @@ const editors: { value: EditorType; label: string }[] = [
     max-width: 90px;
     font-size: 0.72rem;
   }
-  .btn {
-    padding: 3px 7px;
+  .file-tab {
+    padding: 3px 8px;
     font-size: 0.75rem;
+    max-width: 80px;
   }
-  .label-full { display: none; }
-  .label-short { display: inline; }
+  .file-icon {
+    display: none;
+  }
 }
 
 @media (max-width: 400px) {

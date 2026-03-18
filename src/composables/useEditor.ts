@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 function debounce<T extends (...args: any[]) => void>(fn: T, ms: number): T {
   let timer: ReturnType<typeof setTimeout> | null = null
@@ -11,12 +11,19 @@ function debounce<T extends (...args: any[]) => void>(fn: T, ms: number): T {
 export type SupportedLanguage = 'html' | 'css' | 'javascript' | 'typescript' | 'vue'
 export type EditorType = 'monaco' | 'codemirror'
 
+export interface EditorFile {
+  id: string
+  name: string
+  language: SupportedLanguage
+  code: string
+}
+
 const VALID_LANGUAGES: SupportedLanguage[] = ['html', 'css', 'javascript', 'typescript', 'vue']
 const VALID_EDITOR_TYPES: EditorType[] = ['monaco', 'codemirror']
 
-const STORAGE_KEY_LANG = 'playground:editor:language'
+const STORAGE_KEY_FILES = 'playground:editor:files'
+const STORAGE_KEY_ACTIVE_FILE = 'playground:editor:activeFile'
 const STORAGE_KEY_TYPE = 'playground:editor:type'
-const STORAGE_KEY_CODE_PREFIX = 'playground:editor:code:'
 
 export const DEFAULT_CODE: Record<SupportedLanguage, string> = {
   html: `<!DOCTYPE html>
@@ -82,12 +89,12 @@ button {
 <\/style>`,
 }
 
-function safeReadLang(): SupportedLanguage {
-  const val = localStorage.getItem(STORAGE_KEY_LANG)
-  return VALID_LANGUAGES.includes(val as SupportedLanguage)
-    ? (val as SupportedLanguage)
-    : 'html'
-}
+// 默认文件列表
+const DEFAULT_FILES: EditorFile[] = [
+  { id: 'html', name: 'index.html', language: 'html', code: DEFAULT_CODE.html },
+  { id: 'css', name: 'style.css', language: 'css', code: DEFAULT_CODE.css },
+  { id: 'javascript', name: 'main.js', language: 'javascript', code: DEFAULT_CODE.javascript },
+]
 
 function safeReadEditorType(): EditorType {
   const val = localStorage.getItem(STORAGE_KEY_TYPE)
@@ -96,22 +103,86 @@ function safeReadEditorType(): EditorType {
     : 'monaco'
 }
 
-function loadCodeForLang(lang: SupportedLanguage): string {
-  return localStorage.getItem(STORAGE_KEY_CODE_PREFIX + lang) ?? DEFAULT_CODE[lang]
+function loadFiles(): EditorFile[] {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY_FILES)
+    if (saved) {
+      const files = JSON.parse(saved) as EditorFile[]
+      // 确保至少有 html/css/js 三个文件
+      const hasHtml = files.some(f => f.language === 'html')
+      const hasCss = files.some(f => f.language === 'css')
+      const hasJs = files.some(f => f.language === 'javascript')
+      if (!hasHtml) files.push({ ...DEFAULT_FILES[0] })
+      if (!hasCss) files.push({ ...DEFAULT_FILES[1] })
+      if (!hasJs) files.push({ ...DEFAULT_FILES[2] })
+      return files
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return DEFAULT_FILES.map(f => ({ ...f }))
+}
+
+function loadActiveFileId(): string {
+  const saved = localStorage.getItem(STORAGE_KEY_ACTIVE_FILE)
+  if (saved) return saved
+  return 'html' // 默认选中 html
 }
 
 export function useEditor() {
-  const language = ref<SupportedLanguage>(safeReadLang())
+  const files = ref<EditorFile[]>(loadFiles())
+  const activeFileId = ref<string>(loadActiveFileId())
   const editorType = ref<EditorType>(safeReadEditorType())
-  const code = ref<string>(loadCodeForLang(language.value))
 
-  function setLanguage(lang: SupportedLanguage) {
-    // Save current code before switching
-    localStorage.setItem(STORAGE_KEY_CODE_PREFIX + language.value, code.value)
-    language.value = lang
-    // Restore saved code for the new language, or fall back to default
-    code.value = loadCodeForLang(lang)
-    localStorage.setItem(STORAGE_KEY_LANG, lang)
+  // 当前激活的文件
+  const activeFile = computed(() => {
+    return files.value.find(f => f.id === activeFileId.value) ?? files.value[0]
+  })
+
+  // 当前代码（为了向后兼容，提供 code 和 language）
+  const code = computed({
+    get: () => activeFile.value?.code ?? '',
+    set: (val: string) => {
+      const file = files.value.find(f => f.id === activeFileId.value)
+      if (file) file.code = val
+    }
+  })
+
+  const language = computed(() => activeFile.value?.language ?? 'html')
+
+  // 切换激活文件
+  function setActiveFile(fileId: string) {
+    activeFileId.value = fileId
+    localStorage.setItem(STORAGE_KEY_ACTIVE_FILE, fileId)
+  }
+
+  // 添加新文件
+  function addFile(language: SupportedLanguage, name?: string): string {
+    const id = `${language}-${Date.now()}`
+    const fileName = name ?? getDefaultFileName(language)
+    const newFile: EditorFile = {
+      id,
+      name: fileName,
+      language,
+      code: DEFAULT_CODE[language],
+    }
+    files.value.push(newFile)
+    persistFiles()
+    return id
+  }
+
+  // 删除文件（至少保留一个）
+  function removeFile(fileId: string) {
+    if (files.value.length <= 1) return
+    const index = files.value.findIndex(f => f.id === fileId)
+    if (index === -1) return
+    files.value.splice(index, 1)
+    // 如果删除的是当前激活文件，切换到第一个
+    if (activeFileId.value === fileId) {
+      activeFileId.value = files.value[0].id
+      localStorage.setItem(STORAGE_KEY_ACTIVE_FILE, activeFileId.value)
+    }
+    persistFiles()
   }
 
   function setEditorType(type: EditorType) {
@@ -120,28 +191,56 @@ export function useEditor() {
   }
 
   // localStorage 写入防抖，避免每次按键都触发 IO
-  const persistCode = debounce((lang: SupportedLanguage, c: string) => {
-    localStorage.setItem(STORAGE_KEY_CODE_PREFIX + lang, c)
+  const persistFiles = debounce(() => {
+    localStorage.setItem(STORAGE_KEY_FILES, JSON.stringify(files.value))
   }, 500)
 
   function saveCode(c: string) {
     code.value = c
-    persistCode(language.value, c)
+    persistFiles()
   }
 
   function resetCode() {
-    const defaultCode = DEFAULT_CODE[language.value]
-    saveCode(defaultCode)
+    const file = files.value.find(f => f.id === activeFileId.value)
+    if (file) {
+      file.code = DEFAULT_CODE[file.language]
+      persistFiles()
+    }
+  }
+
+  // 重置所有文件到默认
+  function resetAllFiles() {
+    files.value = DEFAULT_FILES.map(f => ({ ...f }))
+    activeFileId.value = 'html'
+    persistFiles()
+    localStorage.setItem(STORAGE_KEY_ACTIVE_FILE, 'html')
   }
 
   return {
+    files,
+    activeFileId,
+    activeFile,
     code,
     language,
     editorType,
-    setLanguage,
+    setActiveFile,
+    addFile,
+    removeFile,
     setEditorType,
     saveCode,
     resetCode,
+    resetAllFiles,
     defaultCode: DEFAULT_CODE,
   }
+}
+
+function getDefaultFileName(lang: SupportedLanguage): string {
+  const names: Record<SupportedLanguage, string> = {
+    html: 'index.html',
+    css: 'style.css',
+    javascript: 'main.js',
+    typescript: 'main.ts',
+    vue: 'App.vue',
+  }
+  return names[lang]
 }
