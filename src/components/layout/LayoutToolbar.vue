@@ -12,6 +12,7 @@ const emit = defineEmits<{
   toggleDirection: []
   setLanguage: [lang: SupportedLanguage]
   setEditorType: [type: EditorType]
+  resetCode: []
 }>()
 
 const languages: { value: SupportedLanguage; label: string; shortLabel: string }[] = [
@@ -55,6 +56,13 @@ const editors: { value: EditorType; label: string }[] = [
       >
         <option v-for="e in editors" :key="e.value" :value="e.value">{{ e.label }}</option>
       </select>
+      <button
+        class="btn btn-icon"
+        title="重置代码为默认"
+        @click="emit('resetCode')"
+      >
+        ↺
+      </button>
       <button
         class="btn btn-icon"
         :title="direction === 'horizontal' ? '切换为上下布局' : '切换为左右布局'"

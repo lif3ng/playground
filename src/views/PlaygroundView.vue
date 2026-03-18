@@ -7,7 +7,7 @@ import SplitLayout from '@/components/layout/SplitLayout.vue'
 import EditorContainer from '@/components/editors/EditorContainer.vue'
 import PreviewFrame from '@/components/preview/PreviewFrame.vue'
 
-const { code, language, editorType, setLanguage, setEditorType, saveCode } = useEditor()
+const { code, language, editorType, setLanguage, setEditorType, saveCode, resetCode } = useEditor()
 const { direction, toggleDirection } = useLayout()
 const { previewHtml } = usePreview(code, language)
 </script>
@@ -21,6 +21,7 @@ const { previewHtml } = usePreview(code, language)
       @toggle-direction="toggleDirection"
       @set-language="setLanguage"
       @set-editor-type="setEditorType"
+      @reset-code="resetCode"
     />
     <SplitLayout :direction="direction" class="playground-body">
       <template #left>
