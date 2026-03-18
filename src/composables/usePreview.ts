@@ -33,10 +33,16 @@ const CONSOLE_INTERCEPT = `<script>
 const BASE_HEAD = `<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">`
 
 function wrapHtml(code: string): string {
+  // 完整 HTML 文档：注入 console 拦截到 </body> 前
   if (code.includes('</body>')) {
     return code.replace('</body>', `${CONSOLE_INTERCEPT}\n</body>`)
   }
-  return `${code}\n${CONSOLE_INTERCEPT}`
+  // 有 <html> 标签但无 </body>：直接追加
+  if (code.includes('<html')) {
+    return `${code}\n${CONSOLE_INTERCEPT}`
+  }
+  // 裸片段（如 <h1>Hello</h1>）：包裹成完整文档
+  return `<!DOCTYPE html>\n<html>\n<head>\n${BASE_HEAD}\n</head>\n<body>\n${CONSOLE_INTERCEPT}\n${code}\n</body>\n</html>`
 }
 
 function wrapCss(code: string): string {
