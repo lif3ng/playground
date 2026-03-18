@@ -20,7 +20,11 @@ const error = ref<string | null>(null)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
 // Handle postMessage from iframe
+// srcdoc iframe without allow-same-origin has origin 'null'
 function onMessage(event: MessageEvent) {
+  // srcdoc iframe without allow-same-origin has origin 'null' (string) or '' in jsdom
+  const allowedOrigins = ['null', '', window.location.origin]
+  if (!allowedOrigins.includes(event.origin)) return
   if (!event.data || event.data.source !== 'playground-preview') return
   const { type, payload } = event.data
   if (type === 'console') {
