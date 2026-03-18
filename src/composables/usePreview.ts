@@ -106,7 +106,7 @@ function wrapVue(src: string): string {
 <html>
 <head>
 ${BASE_HEAD}
-<script src="https://unpkg.com/vue@3/dist/vue.global.js"><\/script>
+<script src="https://unpkg.com/vue@3.5.13/dist/vue.global.prod.js"><\/script>
 </head>
 <body>
 ${CONSOLE_INTERCEPT}
