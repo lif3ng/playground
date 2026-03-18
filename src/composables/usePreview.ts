@@ -33,7 +33,6 @@ const CONSOLE_INTERCEPT = `<script>
 const BASE_HEAD = `<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">`
 
 function wrapHtml(code: string): string {
-  // Inject console intercept before closing body
   if (code.includes('</body>')) {
     return code.replace('</body>', `${CONSOLE_INTERCEPT}\n</body>`)
   }
@@ -106,14 +105,17 @@ ${BASE_HEAD}
 <body>
 ${CONSOLE_INTERCEPT}
 <div id="app"></div>
-<script type="module">
+<script>
 try {
-  const { createApp, ref, reactive, computed, onMounted, watch, nextTick } = Vue;
-  const src = ${JSON.stringify(src)};
-  const templateMatch = src.match(/<template>([\\s\\S]*?)<\/template>/);
-  const scriptMatch = src.match(/<script[^>]*setup[^>]*>([\\s\\S]*?)<\/script>/) ||
-                      src.match(/<script[^>]*>([\\s\\S]*?)<\/script>/);
-  const styleMatch = src.match(/<style[^>]*>([\\s\\S]*?)<\/style>/);
+  const { createApp, ref, reactive, computed, readonly,
+          onMounted, onUnmounted, onUpdated, onBeforeMount,
+          watch, watchEffect, nextTick,
+          toRef, toRefs, isRef, unref, shallowRef, triggerRef } = Vue;
+  const src = ${JSON.stringify('__SRC_PLACEHOLDER__')};
+  const templateMatch = src.match(/<template>([\\s\\S]*?)<\\/template>/);
+  const scriptMatch = src.match(/<script[^>]*setup[^>]*>([\\s\\S]*?)<\\/script>/) ||
+                      src.match(/<script[^>]*>([\\s\\S]*?)<\\/script>/);
+  const styleMatch = src.match(/<style[^>]*>([\\s\\S]*?)<\\/style>/);
 
   if (styleMatch) {
     const style = document.createElement('style');
@@ -125,11 +127,18 @@ try {
   let setupFn = () => ({});
 
   if (scriptMatch) {
+    // 移除所有 import 语句（支持多行）
     const scriptBody = scriptMatch[1]
-      .replace(/import\s+.*?from\s+['"]vue['"];?/g, '')
-      .replace(/import\s+.*?;?/g, '');
+      .replace(/import[\s\S]*?from\s*['"][^'"]+['"];?\s*/g, '')
+      .replace(/import\s*['"][^'"]+['"];?\s*/g, '');
     try {
-      setupFn = new Function('ref', 'reactive', 'computed', 'onMounted', 'watch', 'nextTick', scriptBody + '\nreturn typeof setup !== "undefined" ? setup() : {};')(ref, reactive, computed, onMounted, watch, nextTick);
+      setupFn = new Function(
+        'ref','reactive','computed','readonly',
+        'onMounted','onUnmounted','onUpdated','onBeforeMount',
+        'watch','watchEffect','nextTick',
+        'toRef','toRefs','isRef','unref','shallowRef','triggerRef',
+        scriptBody + '\nreturn typeof setup !== "undefined" ? setup() : {};'
+      )(ref,reactive,computed,readonly,onMounted,onUnmounted,onUpdated,onBeforeMount,watch,watchEffect,nextTick,toRef,toRefs,isRef,unref,shallowRef,triggerRef);
       if (typeof setupFn !== 'function') {
         const result = setupFn;
         setupFn = () => result || {};
@@ -146,7 +155,7 @@ try {
 }
 <\/script>
 </body>
-</html>`
+</html>`.replace('__SRC_PLACEHOLDER__', src)
 }
 
 export function usePreview(code: Ref<string>, language: Ref<SupportedLanguage>) {
