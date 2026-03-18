@@ -4,9 +4,15 @@ export type LayoutDirection = 'horizontal' | 'vertical'
 
 const STORAGE_KEY = 'playground:layout:direction'
 
-export function useLayout() {
+function getDefaultDirection(): LayoutDirection {
   const saved = localStorage.getItem(STORAGE_KEY) as LayoutDirection | null
-  const direction = ref<LayoutDirection>(saved ?? 'horizontal')
+  if (saved === 'horizontal' || saved === 'vertical') return saved
+  // 移动端默认垂直布局
+  return window.innerWidth < 600 ? 'vertical' : 'horizontal'
+}
+
+export function useLayout() {
+  const direction = ref<LayoutDirection>(getDefaultDirection())
 
   function toggleDirection() {
     direction.value = direction.value === 'horizontal' ? 'vertical' : 'horizontal'

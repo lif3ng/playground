@@ -14,12 +14,12 @@ const emit = defineEmits<{
   setEditorType: [type: EditorType]
 }>()
 
-const languages: { value: SupportedLanguage; label: string }[] = [
-  { value: 'html', label: 'HTML' },
-  { value: 'css', label: 'CSS' },
-  { value: 'javascript', label: 'JavaScript' },
-  { value: 'typescript', label: 'TypeScript' },
-  { value: 'vue', label: 'Vue SFC' },
+const languages: { value: SupportedLanguage; label: string; shortLabel: string }[] = [
+  { value: 'html', label: 'HTML', shortLabel: 'HTML' },
+  { value: 'css', label: 'CSS', shortLabel: 'CSS' },
+  { value: 'javascript', label: 'JavaScript', shortLabel: 'JS' },
+  { value: 'typescript', label: 'TypeScript', shortLabel: 'TS' },
+  { value: 'vue', label: 'Vue SFC', shortLabel: 'Vue' },
 ]
 
 const editors: { value: EditorType; label: string }[] = [
@@ -39,9 +39,11 @@ const editors: { value: EditorType; label: string }[] = [
           v-for="lang in languages"
           :key="lang.value"
           :class="['btn', language === lang.value ? 'btn-active' : 'btn-ghost']"
+          :title="lang.label"
           @click="emit('setLanguage', lang.value)"
         >
-          {{ lang.label }}
+          <span class="label-full">{{ lang.label }}</span>
+          <span class="label-short">{{ lang.shortLabel }}</span>
         </button>
       </div>
     </div>
@@ -53,7 +55,11 @@ const editors: { value: EditorType; label: string }[] = [
       >
         <option v-for="e in editors" :key="e.value" :value="e.value">{{ e.label }}</option>
       </select>
-      <button class="btn btn-icon" :title="direction === 'horizontal' ? '切换为上下布局' : '切换为左右布局'" @click="emit('toggleDirection')">
+      <button
+        class="btn btn-icon"
+        :title="direction === 'horizontal' ? '切换为上下布局' : '切换为左右布局'"
+        @click="emit('toggleDirection')"
+      >
         <span v-if="direction === 'horizontal'">⬆⬇</span>
         <span v-else>⬅➡</span>
       </button>
@@ -71,23 +77,33 @@ const editors: { value: EditorType; label: string }[] = [
   background: #1e1e2e;
   border-bottom: 1px solid #313244;
   flex-shrink: 0;
-  gap: 12px;
+  gap: 8px;
+  min-width: 0;
 }
-.toolbar-left, .toolbar-right {
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.toolbar-right {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 .toolbar-center {
   flex: 1;
   display: flex;
   justify-content: center;
+  min-width: 0;
+  overflow: hidden;
 }
 .logo {
   color: #cdd6f4;
   font-weight: 700;
   font-size: 0.95rem;
   letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 .btn-group {
   display: flex;
@@ -95,6 +111,7 @@ const editors: { value: EditorType; label: string }[] = [
   background: #313244;
   border-radius: 6px;
   padding: 2px;
+  overflow: hidden;
 }
 .btn {
   padding: 3px 10px;
@@ -104,6 +121,7 @@ const editors: { value: EditorType; label: string }[] = [
   cursor: pointer;
   font-family: inherit;
   transition: all 0.15s;
+  white-space: nowrap;
 }
 .btn-active {
   background: #6366f1;
@@ -127,6 +145,7 @@ const editors: { value: EditorType; label: string }[] = [
   justify-content: center;
   border-radius: 6px;
   font-size: 0.75rem;
+  flex-shrink: 0;
 }
 .btn-icon:hover {
   background: #45475a;
@@ -141,8 +160,38 @@ const editors: { value: EditorType; label: string }[] = [
   font-family: inherit;
   cursor: pointer;
   outline: none;
+  max-width: 130px;
 }
 .select:hover {
   border-color: #6366f1;
+}
+/* 移动端：隐藏 logo 和完整标签，显示短标签 */
+.label-short { display: none; }
+.label-full { display: inline; }
+
+@media (max-width: 600px) {
+  .toolbar {
+    padding: 0 8px;
+    height: 40px;
+  }
+  .logo {
+    display: none;
+  }
+  .select {
+    max-width: 90px;
+    font-size: 0.72rem;
+  }
+  .btn {
+    padding: 3px 7px;
+    font-size: 0.75rem;
+  }
+  .label-full { display: none; }
+  .label-short { display: inline; }
+}
+
+@media (max-width: 400px) {
+  .select {
+    display: none;
+  }
 }
 </style>

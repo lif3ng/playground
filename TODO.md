@@ -21,16 +21,16 @@
 - [x] 3.2 实现 PreviewFrame 组件（postMessage console + 错误展示 + 刷新）
 - [x] 3.3 编写预览模块测试（22/22 通过）
 
-## Phase 4 — 布局模块
-- [ ] 4.1 实现 useLayout composable
-- [ ] 4.2 实现 SplitLayout 组件（水平/垂直）
-- [ ] 4.3 实现 ResizeDivider 可拖拽分隔条
-- [ ] 4.4 实现 LayoutToolbar 工具栏
-- [ ] 4.5 编写布局模块测试
+## Phase 4 — 布局模块 ✅
+- [x] 4.1 实现 useLayout composable（含移动端默认垂直布局）
+- [x] 4.2 实现 SplitLayout 组件（水平/垂直）
+- [x] 4.3 实现 ResizeDivider 可拖拽分隔条（含 touch 支持）
+- [x] 4.4 实现 LayoutToolbar 工具栏（移动端响应式折叠）
+- [x] 4.5 编写布局模块测试（14/14 通过）
 
-## Phase 5 — 集成与打磨
-- [ ] 5.1 App.vue 整合所有模块
-- [ ] 5.2 移动端响应式适配
-- [ ] 5.3 错误处理与展示
-- [ ] 5.4 localStorage 持久化（编辑器偏好、布局、分隔比例）
-- [ ] 5.5 最终测试 & 清理
+## Phase 5 — 集成与打磨 ✅
+- [x] 5.1 App.vue 整合所有模块
+- [x] 5.2 移动端响应式适配（LayoutToolbar 折叠 + 默认垂直布局 + viewport meta）
+- [x] 5.3 错误处理与展示（PreviewFrame 内嵌）
+- [x] 5.4 localStorage 持久化（编辑器偏好、布局方向、分隔比例）
+- [x] 5.5 最终测试 & 清理（36/36 通过）
