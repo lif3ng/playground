@@ -1,5 +1,13 @@
 import { ref } from 'vue'
 
+function debounce<T extends (...args: any[]) => void>(fn: T, ms: number): T {
+  let timer: ReturnType<typeof setTimeout> | null = null
+  return ((...args: any[]) => {
+    if (timer) clearTimeout(timer)
+    timer = setTimeout(() => fn(...args), ms)
+  }) as T
+}
+
 export type SupportedLanguage = 'html' | 'css' | 'javascript' | 'typescript' | 'vue'
 export type EditorType = 'monaco' | 'codemirror'
 
@@ -111,9 +119,14 @@ export function useEditor() {
     localStorage.setItem(STORAGE_KEY_TYPE, type)
   }
 
+  // localStorage 写入防抖，避免每次按键都触发 IO
+  const persistCode = debounce((lang: SupportedLanguage, c: string) => {
+    localStorage.setItem(STORAGE_KEY_CODE_PREFIX + lang, c)
+  }, 500)
+
   function saveCode(c: string) {
     code.value = c
-    localStorage.setItem(STORAGE_KEY_CODE_PREFIX + language.value, c)
+    persistCode(language.value, c)
   }
 
   function resetCode() {

@@ -20,6 +20,7 @@ const emit = defineEmits<{
   'update:code': [code: string]
 }>()
 
+// 模块级定义，避免每次组件实例化重建 async component
 const MonacoEditor = defineAsyncComponent(() => import('./MonacoEditor.vue'))
 const CodeMirrorEditor = defineAsyncComponent(() => import('./CodeMirrorEditor.vue'))
 

@@ -52,10 +52,14 @@ describe('useEditor', () => {
   })
 
   it('saveCode 更新 code 并持久化', () => {
+    vi.useFakeTimers()
     const { code, saveCode, language } = useEditor()
     saveCode('<p>test</p>')
     expect(code.value).toBe('<p>test</p>')
+    // localStorage 写入有防抖，需要推进定时器
+    vi.runAllTimers()
     expect(localStorage.getItem(`playground:editor:code:${language.value}`)).toBe('<p>test</p>')
+    vi.useRealTimers()
   })
 
   it('setEditorType 更新 editorType 并持久化', () => {
