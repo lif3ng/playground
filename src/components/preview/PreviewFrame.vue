@@ -104,7 +104,7 @@ function clearConsole() {
       ref="iframeRef"
       class="preview-frame"
       :class="{ 'with-console': showConsole && consoleLogs.length > 0 }"
-      sandbox="allow-scripts allow-same-origin allow-modals"
+      sandbox="allow-scripts allow-modals allow-popups"
       frameborder="0"
       title="Code Preview"
     />
