@@ -13,6 +13,7 @@ const emit = defineEmits<{
 
 const containerRef = ref<HTMLDivElement | null>(null)
 const view = shallowRef<any>(null)
+let langCompartment: any = null
 
 async function getLanguageExtension(lang: SupportedLanguage) {
   switch (lang) {
@@ -44,16 +45,20 @@ onMounted(async () => {
   const [
     { EditorView, basicSetup },
     { EditorState },
+    { Compartment },
     { oneDark },
     langExt,
   ] = await Promise.all([
     import('codemirror'),
+    import('@codemirror/state'),
     import('@codemirror/state'),
     import('@codemirror/theme-one-dark'),
     getLanguageExtension(props.language),
   ])
 
   if (!containerRef.value) return
+
+  langCompartment = new Compartment()
 
   const updateListener = EditorView.updateListener.of((update: any) => {
     if (update.docChanged) {
@@ -67,7 +72,7 @@ onMounted(async () => {
       extensions: [
         basicSetup,
         oneDark,
-        langExt,
+        langCompartment.of(langExt),
         updateListener,
         EditorView.theme({
           '&': { height: '100%', fontSize: '14px' },
@@ -91,33 +96,13 @@ watch(() => props.code, (newCode) => {
   }
 })
 
-// Sync language — recreate state with new language extension
+// Sync language — 用 Compartment reconfigure，不重建 state
 watch(() => props.language, async (lang) => {
-  if (!view.value) return
-  const [{ EditorState }, { oneDark }, langExt, { EditorView, basicSetup }] = await Promise.all([
-    import('@codemirror/state'),
-    import('@codemirror/theme-one-dark'),
-    getLanguageExtension(lang),
-    import('codemirror'),
-  ])
-  const currentCode = view.value.state.doc.toString()
-  const updateListener = EditorView.updateListener.of((update: any) => {
-    if (update.docChanged) emit('update:code', update.state.doc.toString())
+  if (!view.value || !langCompartment) return
+  const langExt = await getLanguageExtension(lang)
+  view.value.dispatch({
+    effects: langCompartment.reconfigure(langExt),
   })
-  view.value.setState(EditorState.create({
-    doc: currentCode,
-    extensions: [
-      basicSetup,
-      oneDark,
-      langExt,
-      updateListener,
-      EditorView.theme({
-        '&': { height: '100%', fontSize: '14px' },
-        '.cm-scroller': { fontFamily: '"Cascadia Code", "Fira Code", Menlo, Monaco, monospace', overflow: 'auto' },
-        '.cm-content': { padding: '12px 0' },
-      }),
-    ],
-  }))
 })
 
 onBeforeUnmount(() => {

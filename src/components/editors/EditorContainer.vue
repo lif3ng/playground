@@ -2,6 +2,14 @@
 import { defineAsyncComponent, computed } from 'vue'
 import type { SupportedLanguage, EditorType } from '@/composables/useEditor'
 
+const FILE_NAME: Record<SupportedLanguage, string> = {
+  html: 'index.html',
+  css: 'style.css',
+  javascript: 'index.js',
+  typescript: 'index.ts',
+  vue: 'App.vue',
+}
+
 const props = defineProps<{
   code: string
   language: SupportedLanguage
@@ -23,7 +31,7 @@ const currentEditor = computed(() =>
 <template>
   <div class="editor-container">
     <div class="editor-header">
-      <span class="editor-label">编辑器</span>
+      <span class="editor-label">{{ FILE_NAME[language] }}</span>
       <span class="editor-type-badge">{{ editorType === 'monaco' ? 'Monaco' : 'CodeMirror' }}</span>
     </div>
     <div class="editor-body">

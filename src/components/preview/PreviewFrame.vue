@@ -46,6 +46,7 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.removeEventListener('message', onMessage)
+  if (debounceTimer) clearTimeout(debounceTimer)
 })
 
 watch(() => props.html, (html) => {
