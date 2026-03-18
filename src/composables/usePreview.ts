@@ -68,6 +68,8 @@ ${CONSOLE_INTERCEPT}
 }
 
 function wrapJs(code: string): string {
+  // 用 JSON.stringify 安全编码用户代码，避免 </script> 截断问题
+  const safeCode = JSON.stringify(code)
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -77,7 +79,7 @@ ${BASE_HEAD}
 ${CONSOLE_INTERCEPT}
 <script>
 try {
-${code}
+  eval(${safeCode})
 } catch(e) {
   console.error(e.message);
 }
