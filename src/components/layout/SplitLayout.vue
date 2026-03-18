@@ -36,6 +36,7 @@ let startSplit = 0
 let containerSize = 0
 
 function startDrag(pos: number, e: { target: EventTarget | null }) {
+  if (dragging) return // 防止重复开始
   dragging = true
   startPos = pos
   startSplit = splitPercent.value
@@ -57,13 +58,49 @@ function endDrag() {
   localStorage.setItem(STORAGE_KEY, String(splitPercent.value))
 }
 
+function clearBodyStyles() {
+  document.body.style.userSelect = ''
+  document.body.style.cursor = ''
+}
+
+function cleanupMouse() {
+  endDrag()
+  clearBodyStyles()
+  document.removeEventListener('mousemove', onMouseMove)
+  document.removeEventListener('mouseup', onMouseUp)
+  window.removeEventListener('blur', cleanupMouse)
+  document.removeEventListener('keydown', onKeyDown)
+}
+
+function cleanupTouch() {
+  endDrag()
+  clearBodyStyles()
+  document.removeEventListener('touchmove', onTouchMove)
+  document.removeEventListener('touchend', onTouchEnd)
+  document.removeEventListener('touchcancel', onTouchCancel)
+  window.removeEventListener('blur', cleanupTouch)
+  document.removeEventListener('keydown', onKeyDown)
+}
+
+function onKeyDown(e: KeyboardEvent) {
+  if (e.key === 'Escape') {
+    // 取消拖动，恢复原始位置
+    splitPercent.value = startSplit
+    cleanupMouse()
+    cleanupTouch()
+  }
+}
+
 // Mouse
 function onDividerMousedown(e: MouseEvent) {
+  e.preventDefault() // 防止文字选中
   startDrag(isHorizontal.value ? e.clientX : e.clientY, e)
   document.body.style.userSelect = 'none'
   document.body.style.cursor = isHorizontal.value ? 'col-resize' : 'row-resize'
   document.addEventListener('mousemove', onMouseMove)
   document.addEventListener('mouseup', onMouseUp)
+  window.addEventListener('blur', cleanupMouse)
+  document.addEventListener('keydown', onKeyDown)
 }
 
 function onMouseMove(e: MouseEvent) {
@@ -71,19 +108,21 @@ function onMouseMove(e: MouseEvent) {
 }
 
 function onMouseUp() {
-  endDrag()
-  document.body.style.userSelect = ''
-  document.body.style.cursor = ''
-  document.removeEventListener('mousemove', onMouseMove)
-  document.removeEventListener('mouseup', onMouseUp)
+  cleanupMouse()
 }
 
 // Touch
 function onDividerTouchstart(e: TouchEvent) {
+  e.preventDefault() // 防止滚动和缩放
   const touch = e.touches[0]
   startDrag(isHorizontal.value ? touch.clientX : touch.clientY, e)
+  document.body.style.userSelect = 'none'
+  document.body.style.cursor = isHorizontal.value ? 'col-resize' : 'row-resize'
   document.addEventListener('touchmove', onTouchMove, { passive: false })
   document.addEventListener('touchend', onTouchEnd)
+  document.addEventListener('touchcancel', onTouchCancel)
+  window.addEventListener('blur', cleanupTouch)
+  document.addEventListener('keydown', onKeyDown)
 }
 
 function onTouchMove(e: TouchEvent) {
@@ -93,9 +132,13 @@ function onTouchMove(e: TouchEvent) {
 }
 
 function onTouchEnd() {
-  endDrag()
-  document.removeEventListener('touchmove', onTouchMove)
-  document.removeEventListener('touchend', onTouchEnd)
+  cleanupTouch()
+}
+
+function onTouchCancel() {
+  // touchcancel 时恢复原始位置
+  splitPercent.value = startSplit
+  cleanupTouch()
 }
 </script>
 
