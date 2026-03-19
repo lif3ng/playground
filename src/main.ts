@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 import 'virtual:uno.css'
+import './styles/theme.css'
 import App from './App.vue'
 import router from './router'
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { LayoutDirection } from '@/composables/useLayout'
 import type { EditorType, EditorFile } from '@/composables/useEditor'
+import type { Theme } from '@/composables/useTheme'
 import DeviceSelector from '@/components/preview/DeviceSelector.vue'
 
 defineProps<{
@@ -13,6 +14,7 @@ defineProps<{
   isLandscape?: boolean
   customWidth?: number
   customHeight?: number
+  theme?: Theme
 }>()
 
 const emit = defineEmits<{
@@ -26,6 +28,9 @@ const emit = defineEmits<{
   selectDevice: [deviceId: string]
   toggleLandscape: []
   setCustomSize: [width: number, height: number]
+  share: []
+  format: []
+  toggleTheme: []
 }>()
 
 const editors: { value: EditorType; label: string }[] = [
@@ -102,6 +107,27 @@ function getFileIcon(language: string): string {
         @toggle-landscape="emit('toggleLandscape')"
         @set-custom-size="emit('setCustomSize', $event[0], $event[1])"
       />
+      <button
+        class="btn btn-icon"
+        title="格式化代码"
+        @click="emit('format')"
+      >
+        ✨
+      </button>
+      <button
+        class="btn btn-icon"
+        title="分享链接"
+        @click="emit('share')"
+      >
+        🔗
+      </button>
+      <button
+        class="btn btn-icon"
+        :title="theme === 'dark' ? '切换到亮色主题' : '切换到暗色主题'"
+        @click="emit('toggleTheme')"
+      >
+        {{ theme === 'dark' ? '☀️' : '🌙' }}
+      </button>
       <select
         class="select"
         :value="editorType"

@@ -216,6 +216,14 @@ export function useEditor() {
     localStorage.setItem(STORAGE_KEY_ACTIVE_FILE, 'html')
   }
 
+  // 设置所有文件（用于从 URL 分享恢复）
+  function setFiles(newFiles: EditorFile[]) {
+    files.value = newFiles
+    activeFileId.value = newFiles[0]?.id ?? 'html'
+    persistFiles()
+    localStorage.setItem(STORAGE_KEY_ACTIVE_FILE, activeFileId.value)
+  }
+
   return {
     files,
     activeFileId,
@@ -230,6 +238,7 @@ export function useEditor() {
     saveCode,
     resetCode,
     resetAllFiles,
+    setFiles,
     defaultCode: DEFAULT_CODE,
   }
 }
