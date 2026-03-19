@@ -1,12 +1,18 @@
 <script setup lang="ts">
 import type { LayoutDirection } from '@/composables/useLayout'
 import type { EditorType, EditorFile } from '@/composables/useEditor'
+import DeviceSelector from '@/components/preview/DeviceSelector.vue'
 
 defineProps<{
   direction: LayoutDirection
   files: EditorFile[]
   activeFileId: string
   editorType: EditorType
+  isResponsiveMode?: boolean
+  selectedDeviceId?: string
+  isLandscape?: boolean
+  customWidth?: number
+  customHeight?: number
 }>()
 
 const emit = defineEmits<{
@@ -16,6 +22,10 @@ const emit = defineEmits<{
   removeFile: [fileId: string]
   setEditorType: [type: EditorType]
   resetCode: []
+  toggleResponsiveMode: []
+  selectDevice: [deviceId: string]
+  toggleLandscape: []
+  setCustomSize: [width: number, height: number]
 }>()
 
 const editors: { value: EditorType; label: string }[] = [
@@ -81,6 +91,17 @@ function getFileIcon(language: string): string {
       </div>
     </div>
     <div class="toolbar-right">
+      <DeviceSelector
+        :is-responsive-mode="isResponsiveMode ?? false"
+        :selected-device-id="selectedDeviceId ?? 'desktop'"
+        :is-landscape="isLandscape ?? false"
+        :custom-width="customWidth ?? 375"
+        :custom-height="customHeight ?? 667"
+        @toggle-responsive-mode="emit('toggleResponsiveMode')"
+        @select-device="emit('selectDevice', $event)"
+        @toggle-landscape="emit('toggleLandscape')"
+        @set-custom-size="emit('setCustomSize', $event[0], $event[1])"
+      />
       <select
         class="select"
         :value="editorType"

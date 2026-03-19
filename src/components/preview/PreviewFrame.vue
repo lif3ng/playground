@@ -1,8 +1,11 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 
 const props = defineProps<{
   html: string
+  previewWidth?: number | '100%'
+  previewHeight?: number | '100%'
+  isResponsiveMode?: boolean
 }>()
 
 export interface ConsoleLog {
@@ -18,6 +21,37 @@ const showConsole = ref(true)
 const error = ref<string | null>(null)
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+// 计算预览区样式
+const previewContainerStyle = computed(() => {
+  if (!props.isResponsiveMode) {
+    return {}
+  }
+
+  const w = props.previewWidth
+  const h = props.previewHeight
+
+  return {
+    width: typeof w === 'number' ? `${w}px` : w,
+    height: typeof h === 'number' ? `${h}px` : h,
+    maxWidth: '100%',
+    margin: '0 auto',
+  }
+})
+
+const isFixedSizeMode = computed(() => {
+  return props.isResponsiveMode && 
+    typeof props.previewWidth === 'number' && 
+    typeof props.previewHeight === 'number'
+})
+
+const displaySizeText = computed(() => {
+  if (!props.isResponsiveMode) return ''
+  const w = props.previewWidth
+  const h = props.previewHeight
+  if (w === '100%' && h === '100%') return '100%'
+  return `${w}×${h}`
+})
 
 // Handle postMessage from iframe
 // srcdoc iframe without allow-same-origin has origin 'null'
@@ -84,6 +118,7 @@ function clearConsole() {
     <!-- Header -->
     <div class="preview-header">
       <span class="preview-label">预览</span>
+      <span v-if="displaySizeText" class="preview-size">{{ displaySizeText }}</span>
       <div class="preview-actions">
         <span v-if="loading" class="preview-loading">刷新中...</span>
         <button class="action-btn" title="刷新" @click="refresh">↺</button>
@@ -103,15 +138,19 @@ function clearConsole() {
       <span class="error-icon">⚠</span> {{ error }}
     </div>
 
-    <!-- iframe -->
-    <iframe
-      ref="iframeRef"
-      class="preview-frame"
-      :class="{ 'with-console': showConsole && consoleLogs.length > 0 }"
-      sandbox="allow-scripts allow-modals allow-popups"
-      frameborder="0"
-      title="Code Preview"
-    />
+    <!-- Preview area with responsive container -->
+    <div class="preview-body" :class="{ 'responsive-mode': isResponsiveMode }">
+      <div class="preview-container" :style="previewContainerStyle">
+        <iframe
+          ref="iframeRef"
+          class="preview-frame"
+          :class="{ 'with-console': showConsole && consoleLogs.length > 0, 'fixed-size': isFixedSizeMode }"
+          sandbox="allow-scripts allow-modals allow-popups"
+          frameborder="0"
+          title="Code Preview"
+        />
+      </div>
+    </div>
 
     <!-- Console panel -->
     <Transition name="console-slide">
@@ -162,6 +201,15 @@ function clearConsole() {
   color: #374151;
   font-size: 0.8rem;
 }
+.preview-size {
+  font-family: monospace;
+  font-size: 0.72rem;
+  color: #6366f1;
+  background: #ede9fe;
+  padding: 1px 6px;
+  border-radius: 4px;
+  margin-left: 8px;
+}
 .preview-actions {
   display: flex;
   align-items: center;
@@ -201,6 +249,37 @@ function clearConsole() {
 .error-icon {
   margin-right: 4px;
 }
+
+/* Preview body - supports responsive mode */
+.preview-body {
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.preview-body.responsive-mode {
+  background: #f9fafb;
+  padding: 16px;
+}
+
+.preview-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.preview-body.responsive-mode .preview-container {
+  flex: none;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
 .preview-frame {
   flex: 1;
   width: 100%;
@@ -208,6 +287,12 @@ function clearConsole() {
   background: #fff;
   min-height: 0;
 }
+
+.preview-frame.fixed-size {
+  flex: none;
+  height: 100%;
+}
+
 /* Console panel */
 .console-panel {
   flex-shrink: 0;
